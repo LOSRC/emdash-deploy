@@ -208,7 +208,19 @@ describe('--dry-run', () => {
     expect(out.at(-1)).toBe('Dry run: nothing was migrated or uploaded.')
   })
 
-  it('takes the flag before the environment too', () => {
+  it('refuses, as a refusal, a build file it cannot remove', () => {
+    mkdirSync(join(site, 'dist', 'server', 'wrangler.json', 'x'), { recursive: true })
+    const { code, steps, err } = run({ argv: ['staging'], env: stagingEnv, fake: {} })
+    expect(code).toBe(1)
+    expect(steps).toEqual([])
+    expect(err.at(-1)).toBe('Nothing was migrated or uploaded.')
+  })
+
+  it('takes the flag before the environment too, and twice', () => {
+    expect(
+      run({ argv: ['staging', '--dry-run', '--dry-run'], env: stagingEnv, fake: { build: cgStagingBuild } })
+        .steps,
+    ).toEqual(['astro build', 'wrangler deploy --dry-run'])
     const { code, steps } = run({
       argv: ['--dry-run', 'staging'],
       env: stagingEnv,

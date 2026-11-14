@@ -98,6 +98,11 @@ export function deploy(options) {
       options.err(USAGE)
       return 2
     }
+    if (!(error instanceof Refusal) && isFsError(error)) {
+      options.err(`Refusing to deploy: ${/** @type {Error} */ (error).message}`)
+      options.err('Nothing was migrated or uploaded.')
+      return 1
+    }
     if (error instanceof Refusal) {
       options.err(`${error.prefix}: ${error.message}`)
       for (const problem of error.problems) options.err(`  - ${problem}`)
@@ -142,10 +147,11 @@ function deploySteps({ argv, cwd, env, run, out, tmp = tmpdir() }) {
   const childEnv = { ...env }
   if (environment === PRODUCTION) delete childEnv.CLOUDFLARE_ENV
   else childEnv.CLOUDFLARE_ENV = environment
+  const verb = dryRun ? 'Checking (dry run)' : 'Deploying'
   out(
     environment === PRODUCTION
-      ? `Deploying production (the top level of ${WRANGLER_CONFIG}) to the Worker ${expected.name}: CLOUDFLARE_ENV unset.`
-      : `Deploying ${environment} (env.${environment} in ${WRANGLER_CONFIG}) to the Worker ${expected.name}: CLOUDFLARE_ENV=${environment}.`,
+      ? `${verb} production (the top level of ${WRANGLER_CONFIG}) to the Worker ${expected.name}: CLOUDFLARE_ENV unset.`
+      : `${verb} ${environment} (env.${environment} in ${WRANGLER_CONFIG}) to the Worker ${expected.name}: CLOUDFLARE_ENV=${environment}.`,
   )
 
   // 3. Build. A failed build must not leave an earlier build's configuration to be checked.
@@ -268,6 +274,16 @@ function deploySteps({ argv, cwd, env, run, out, tmp = tmpdir() }) {
 }
 
 /**
+ * A filesystem error (Node's `code` on the error). Every filesystem call comes before the first
+ * migration, so nothing was migrated or uploaded.
+ *
+ * @param {unknown} error
+ */
+function isFsError(error) {
+  return error instanceof Error && typeof (/** @type {any} */ (error).code) === 'string'
+}
+
+/**
  * @param {string[]} argv
  * @returns {{ environment: string, dryRun: boolean }}
  */
@@ -275,12 +291,9 @@ function parseArgs(argv) {
   const positional = argv.filter((arg) => !arg.startsWith('-'))
   const flags = argv.filter((arg) => arg.startsWith('-'))
   const unknown = flags.filter((flag) => flag !== '--dry-run')
-  if (positional.length !== 1 || unknown.length > 0 || flags.length > 1) {
-    throw new UsageError(
-      unknown.length > 0 ? `unknown option ${unknown.join(' ')}` : 'name one environment',
-    )
-  }
-  return { environment: /** @type {string} */ (positional[0]), dryRun: flags.length === 1 }
+  if (unknown.length > 0) throw new UsageError(`unknown option ${unknown.join(' ')}`)
+  if (positional.length !== 1) throw new UsageError('name one environment')
+  return { environment: /** @type {string} */ (positional[0]), dryRun: flags.length > 0 }
 }
 
 /**

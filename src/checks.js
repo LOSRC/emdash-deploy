@@ -69,7 +69,7 @@ export function checkBuild({ environment, build, expected, production }) {
     }
     if (build.routes.length > 0 || expected.routes.length > 0) {
       problems.push(
-        `${environment} must have no routes, so it cannot take production's domain; it has ${JSON.stringify(build.routes.length > 0 ? build.routes : expected.routes)}${expected.routes.length > 0 ? ' (an env without its own "routes": [] inherits the top level\'s)' : ''}`,
+        `${environment} must have no routes, so it cannot take production's domain; it has ${JSON.stringify(build.routes.length > 0 ? build.routes : expected.routes)}${expected.routes.length > 0 ? ' (an env without its own "routes" inherits the top level\'s)' : ''}`,
       )
     }
   }
@@ -90,6 +90,14 @@ export function checkBuild({ environment, build, expected, production }) {
     if (!entry.id) {
       problems.push(
         `KV ${show(entry.binding)} has no id, so Wrangler would create a new, empty namespace`,
+      )
+    }
+  }
+
+  for (const entry of build.r2_buckets) {
+    if (!entry.bucket_name) {
+      problems.push(
+        `R2 ${show(entry.binding)} has no bucket_name, so Wrangler would create a new, empty bucket`,
       )
     }
   }

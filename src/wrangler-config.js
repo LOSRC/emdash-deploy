@@ -24,7 +24,7 @@
  * @property {boolean | undefined} workers_dev
  * @property {string | undefined} targetEnvironment The Wrangler environment a build was made
  *   for; absent for production. Only a build has it.
- * @property {unknown[]} routes Every route, written as `route` or `routes`.
+ * @property {unknown[]} routes The routes Wrangler deploys: `routes` when set, else `route`.
  * @property {D1Binding[]} d1_databases
  * @property {KvBinding[]} kv_namespaces
  * @property {R2Binding[]} r2_buckets
@@ -76,7 +76,10 @@ export function sectionFor(top, environment) {
   if (!Object.hasOwn(envs, environment) || !isRecord(envs[environment])) {
     throw new Error(`wrangler.jsonc has no env.${environment}`)
   }
-  const section = asRecord(envs[environment])
+  const own = asRecord(envs[environment])
+  // Wrangler treats an empty account_id as unset (`mutateEmptyStringAccountIDValue`).
+  const section = { ...own }
+  if (section.account_id === '') delete section.account_id
   const inherited = Object.fromEntries(
     INHERITED_KEYS.filter((key) => section[key] === undefined && top[key] !== undefined).map(
       (key) => [key, top[key]],
@@ -116,11 +119,13 @@ export function workerConfig(value) {
     const entries = section[key]
     return Array.isArray(entries) ? entries.map(asRecord) : []
   }
+  // What Wrangler deploys: `routes` when set (an env's own `[]` included), else `route`.
   const route = section.route
-  const routes = [
-    ...(route === undefined || route === '' ? [] : [route]),
-    ...(Array.isArray(section.routes) ? section.routes : []),
-  ]
+  const routes = Array.isArray(section.routes)
+    ? section.routes
+    : route === undefined || route === ''
+      ? []
+      : [route]
   return {
     name: typeof section.name === 'string' ? section.name : undefined,
     account_id: typeof section.account_id === 'string' ? section.account_id : undefined,

@@ -135,14 +135,34 @@ describe('checkBuild: christophergoddard', () => {
     )
   })
 
-  it('refuses staging that inherits a top-level route even with routes: []', () => {
+  it("accepts staging's own routes: [] under a top-level route, which Wrangler deploys as none", () => {
     const jsonc = edit(christophergoddardJsonc, (top) => {
       delete top.routes
+      top.route = 'christophergoddard.net/*'
+    })
+    expect(check(jsonc, 'staging', cgStagingBuild)).toEqual([])
+  })
+
+  it('refuses staging that inherits a top-level route', () => {
+    const jsonc = edit(christophergoddardJsonc, (top) => {
+      delete top.routes
+      delete top.env.staging.routes
       top.route = 'christophergoddard.net/*'
     })
     expect(check(jsonc, 'staging', cgStagingBuild).join('\n')).toContain(
       'staging must have no routes',
     )
+  })
+
+  it('refuses an R2 with no bucket_name, which Wrangler would create', () => {
+    const jsonc = edit(christophergoddardJsonc, (top) => {
+      delete top.env.staging.r2_buckets[0].bucket_name
+    })
+    const build = clone(cgStagingBuild)
+    delete build.r2_buckets[0].bucket_name
+    expect(check(jsonc, 'staging', build)).toEqual([
+      'R2 "MEDIA" has no bucket_name, so Wrangler would create a new, empty bucket',
+    ])
   })
 
   it('refuses staging that shares a D1, KV or R2 with production', () => {

@@ -48,7 +48,22 @@ describe('resolveEnvironment', () => {
       'staging',
     )
     expect(resolved).toMatchObject({ account_id: 'acc', workers_dev: false })
-    expect(resolved.routes).toEqual(['example.com/*', { pattern: 'example.com', custom_domain: true }])
+    // Wrangler deploys `routes` when set, else `route`.
+    expect(resolved.routes).toEqual([{ pattern: 'example.com', custom_domain: true }])
+    expect(
+      resolveEnvironment({ route: 'example.com/*', env: { staging: { routes: [] } } }, 'staging')
+        .routes,
+    ).toEqual([])
+    expect(
+      resolveEnvironment({ route: 'example.com/*', env: { staging: {} } }, 'staging').routes,
+    ).toEqual(['example.com/*'])
+  })
+
+  it('inherits account_id over an env\'s empty one, as Wrangler does', () => {
+    expect(
+      resolveEnvironment({ account_id: 'acc', env: { staging: { account_id: '' } } }, 'staging')
+        .account_id,
+    ).toBe('acc')
   })
 
   it('names an env with no name of its own <top>-<env>', () => {
