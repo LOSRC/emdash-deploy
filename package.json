@@ -1,0 +1,53 @@
+{
+  "name": "@losrc/emdash-deploy",
+  "version": "0.1.0",
+  "description": "The checked deploy order for EmDash sites on Cloudflare Workers Builds: build, check the build against wrangler.jsonc and the target fingerprint, migrate, deploy",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.28.4",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LOSRC/emdash-deploy.git"
+  },
+  "keywords": [
+    "emdash",
+    "astro",
+    "cloudflare",
+    "workers",
+    "deploy"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "emdash-deploy": "./bin/emdash-deploy.js"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin/*.js",
+    "src/*.js",
+    "!src/*.test.js",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "@emdash-cms/cloudflare": ">=1.3.1 <1.6.0",
+    "emdash": ">=1.3.1 <1.6.0",
+    "wrangler": ">=4.147.0 <4.153.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.6",
+    "vitest": "5.0.5"
+  }
+}
